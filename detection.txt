@@ -1,101 +1,114 @@
-// Start with the most specific indicator - calc.exe process
+// Start with process events, looking for calculator processes spawned by PowerShell
 #event_simpleName=ProcessRollup2 
-| filter FileName="calc.exe" AS calc_process
+| filter FileName="calc.exe" AND ParentBaseFileName=/powershell\.exe|pwsh\.exe/i
 
-// Join to find PowerShell parent processes
-| join inner 
-  (
-    #event_simpleName=ProcessRollup2 
-    | filter FileName IN ("powershell.exe", "pwsh.exe") AS ps_parent
-  ) on calc_process.ParentProcessId = ps_parent.ProcessId within=10s
+// Store key information about this process
+| alter 
+    TargetProcessId=ProcessId,
+    PowerShellParentId=ParentProcessId,
+    ExecutionTime=_time
 
-// Focus on PowerShell processes with specific command patterns
+// Look exclusively at relevant PowerShell properties using the stored parent ID
+| alter ParentProcessId=PowerShellParentId
+| unique ParentProcessId
+
+// Stream in PowerShell command line data to examine for suspicious patterns
+| lookup 
+    processId, CommandLine
+    from
+    (
+      #event_simpleName=ProcessRollup2
+      | filter FileName=/powershell\.exe|pwsh\.exe/i
+      | alter processId=ProcessId
+    )
+    where
+    processId=ParentProcessId
+
+// Apply behavioral detection filters based on command patterns
 | filter (
-    // Look for specific function names instead of wildcards
-    (ps_parent.CommandLine contains "GetEncryptionKey" OR 
-     ps_parent.CommandLine contains "Encrypt-Bytes" OR 
-     ps_parent.CommandLine contains "Decrypt-Bytes") AND
+    // Encryption and cryptography related functions
+    CommandLine=/Encrypt|Decrypt|AES|Cryptography/i AND
     
-    // Look for specific memory manipulation techniques
-    (ps_parent.CommandLine contains "SecureStringToBSTR" OR 
-     ps_parent.CommandLine contains "PtrToStringAuto") AND
+    // Secure string handling for password validation
+    CommandLine=/SecureString|Marshal|BSTR|PtrToString/i AND
     
-    // Look for assembly loading patterns
-    (ps_parent.CommandLine contains "Assembly.Load" OR 
-     ps_parent.CommandLine contains "GetMethod")
-) AS ps_parent
+    // Assembly loading and reflection
+    CommandLine=/Assembly|GetMethod|Invoke|reflection/i AND
+    
+    // Code compilation indicators
+    CommandLine=/CodeDom|CSharpCodeProvider|CompileAssembly/i
+)
 
-// Join to find binary creation on desktop - specific path components instead of wildcards
-| join inner
-  (
-    #event_simpleName=FileWritten 
-    | filter TargetFileName contains "Desktop" AND 
-             TargetFileName contains "thundr_" AND 
-             (TargetFileName endsWith ".bin" OR TargetFileName endsWith ".dll")
-    AS desktop_file
-  ) on ps_parent.ProcessId = desktop_file.ProcessId within=5m
+// Use other event types to enhance detection without joins
+| alter PowershellProcess=ParentProcessId
+| unique PowershellProcess
 
-// Join to find temporary DLL creation-deletion pattern
-| join inner
-  (
-    #event_simpleName=FileWritten
-    | filter TargetFileName contains "Temp" AND 
-             TargetFileName endsWith ".dll" AS temp_dll_created
-    | join inner
-      (
-        #event_simpleName=FileDeleted
-        | filter TargetFileName contains "Temp" AND 
-                 TargetFileName endsWith ".dll" AS temp_dll_deleted
-      ) on ProcessId, TargetFileName within=30s
-  ) on ps_parent.ProcessId = temp_dll_created.ProcessId within=5m
+// Check for desktop files with our pattern using lookup instead of join
+| alter has_desktop_binary=false
+| lookup
+    has_desktop_binary=true
+    from 
+    (
+      #event_simpleName=FileWritten
+      | filter TargetFileName=/Desktop.*thundr_.*\.(bin|dll)$/i
+      | alter ProcessId=ProcessId
+    )
+    where
+    ProcessId=PowershellProcess
 
-// Join to find specific cryptographic API usage
-| join inner
-  (
-    #event_simpleName=ModuleLoad 
-    | filter (ModuleFileName contains "System.Security.Cryptography" OR
-              ModuleFileName contains "Reflection")
-    AS crypto_module
-  ) on ps_parent.ContextProcessId = crypto_module.ContextProcessId within=5m
+// Check for temporary DLL creation using lookup
+| alter has_temp_dll=false
+| lookup
+    has_temp_dll=true
+    from
+    (
+      #event_simpleName=FileWritten
+      | filter TargetFileName=/Temp.*\.dll$/i
+      | alter ProcessId=ProcessId
+    )
+    where
+    ProcessId=PowershellProcess
 
-// Join to detect memory allocation for executable content
-| join inner
-  (
-    #event_simpleName=MemoryAllocationSubmitted
-    | filter Protect=0x40 // PAGE_EXECUTE_READWRITE
-    AS mem_alloc
-  ) on ps_parent.ContextProcessId = mem_alloc.ContextProcessId within=5m
+// Look for memory allocation as final confirmation
+| alter has_exec_memory=false
+| lookup
+    has_exec_memory=true
+    from
+    (
+      #event_simpleName=MemoryAllocationSubmitted
+      | filter Protect=0x40 // PAGE_EXECUTE_READWRITE
+      | alter ContextProcessId=ContextProcessId
+    )
+    where
+    ContextProcessId=PowershellProcess
 
-// Group by computer and timestamp to reduce result set size
-| groupBy([ps_parent.ComputerName, format_time(calc_process._time, "yyyy-MM-dd HH")])
+// Only alert on events matching our full behavioral pattern
+| filter has_desktop_binary=true AND has_temp_dll=true AND has_exec_memory=true
+
+// Group by host and day for efficient reporting over a year of data
+| groupBy([ComputerName, format_time(ExecutionTime, "yyyy-MM-dd")])
   {
-    // Collect only the most critical fields
+    // Collect only essential details
     collect([
-      calc_process.ProcessId,
-      ps_parent.ProcessId,
-      ps_parent.CommandLine,
-      desktop_file.TargetFileName,
-      temp_dll_created.TargetFileName,
-      mem_alloc.AllocationBase
-    ]) as DetectionDetails
+      CommandLine,
+      TargetProcessId,
+      PowershellProcess,
+      ExecutionTime
+    ]) as ActivityDetails
     
-    // Track first occurrence time
-    min(calc_process._time) as FirstSeen
-    
-    // Track count for volume analysis
+    min(ExecutionTime) as FirstSeen
     count() as EventCount
-  } AS detection_group
+  }
 
-// Add detection context
-| eval TechniqueName = "Hostname-Encrypted DLL with Calculator Execution"
-| eval Description = "PowerShell creating encrypted DLL using hostname as key, launching calculator process with potential P/Invoke console hiding"
+// Final formatting
+| eval AlertTitle = "Hostname-Encrypted DLL Technique Detected"
+| eval Description = "PowerShell script creating hostname-encrypted DLL to launch calculator process detected"
 
-// Format output
 | sort by FirstSeen asc
 | project 
     ComputerName,
     FirstSeen, 
     EventCount,
-    TechniqueName,
+    AlertTitle,
     Description,
-    DetectionDetails
+    ActivityDetails
