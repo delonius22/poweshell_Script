@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process Flow Diagram: Hostname-Encrypted DLL Calculator Execution</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        p {
+            text-align: center;
+            color: #666;
+        }
+        .pdf-instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-radius: 5px;
+        }
+        .pdf-instructions h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        @media print {
+            .pdf-instructions, .no-print {
+                display: none;
+            }
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Process Flow: Hostname-Encrypted DLL Calculator Execution</h1>
+        <p>Interactive Flowchart Diagram</p>
+        
+        <div class="pdf-instructions no-print">
+            <h3>To save as PDF:</h3>
+            <ol>
+                <li>Right-click on this page and select "Print..." (or press Ctrl+P/Cmd+P)</li>
+                <li>Select "Save as PDF" as the destination</li>
+                <li>Click "Save" to create the PDF file</li>
+                <li>These instructions will not appear in the printed/PDF version</li>
+            </ol>
+        </div>
+        
+        <canvas id="flowchart"></canvas>
+    </div>
+
+    <script>
+        // JavaScript implementation of the process flow diagram using HTML5 Canvas
+        window.onload = function() {
+          // Get the canvas element
+          const canvas = document.getElementById('flowchart');
+          const ctx = canvas.getContext('2d');
+          
+          // Set canvas dimensions
+          canvas.width = 1200;
+          canvas.height = 1800;
+          
+          // Draw background
+          ctx.fillStyle = '#f8f9fa';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw grid pattern
+          drawGrid(ctx, canvas.width, canvas.height);
+          
+          // Draw title and subtitle
+          drawTitle(ctx);
+          
+          // Draw process flow elements
+          drawProcessFlow(ctx);
+          
+          // Draw connector lines
+          drawConnectors(ctx);
+          
+          // Draw additional information blocks
+          drawInfoBlocks(ctx);
+        };
+
+        // Function to draw the grid pattern
+        function drawGrid(ctx, width, height) {
+          ctx.strokeStyle = '#e9ecef';
+          ctx.lineWidth = 0.5;
+          
+          // Draw horizontal lines
+          for (let y = 0; y < height; y += 10) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+          }
+          
+          // Draw vertical lines
+          for (let x = 0; x < width; x += 10) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+          }
+        }
+
+        // Function to draw title and subtitle
+        function drawTitle(ctx) {
+          ctx.fillStyle = '#212529';
+          ctx.font = 'bold 24px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Detailed Process Flow: Hostname-Encrypted DLL Calculator Execution', 600, 40);
+          
+          ctx.font = '14px Arial';
+          ctx.fillStyle = '#495057';
+          ctx.fillText('Windows Processes, Event IDs, and Script-Specific Implementation Details', 600, 65);
+        }
+
+        // Helper function to draw a rounded rectangle
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+          ctx.beginPath();
+          ctx.moveTo(x + radius, y);
+          ctx.lineTo(x + width - radius, y);
+          ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+          ctx.lineTo(x + width, y + height - radius);
+          ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+          ctx.lineTo(x + radius, y + height);
+          ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+          ctx.lineTo(x, y + radius);
+          ctx.quadraticCurveTo(x, y, x + radius, y);
+          ctx.closePath();
+          
+          if (fill) {
+            ctx.fillStyle = fill;
+            ctx.fill();
+          }
+          
+          if (stroke) {
+            ctx.strokeStyle = stroke;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+        }
+
+        // Function to draw a process box with text
+        function drawProcessBox(ctx, x, y, width, height, radius, fillColor, strokeColor, title, subtitle = null, subtitle2 = null) {
+          roundRect(ctx, x, y, width, height, radius, fillColor, strokeColor);
+          
+          ctx.fillStyle = 'white';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(title, x + width/2, y + 25);
+          
+          if (subtitle) {
+            ctx.font = '12px Arial';
+            ctx.fillText(subtitle, x + width/2, y + 45);
+          }
+          
+          if (subtitle2) {
+            ctx.font = '12px Arial';
+            ctx.fillText(subtitle2, x + width/2, y + 65);
+          }
+        }
+
+        // Function to draw a diamond (decision box)
+        function drawDiamond(ctx, centerX, centerY, width, height, fillColor, strokeColor, text, subtext = null) {
+          ctx.beginPath();
+          ctx.moveTo(centerX - width/2, centerY);
+          ctx.lineTo(centerX, centerY - height/2);
+          ctx.lineTo(centerX + width/2, centerY);
+          ctx.lineTo(centerX, centerY + height/2);
+          ctx.closePath();
+          
+          ctx.fillStyle = fillColor;
+          ctx.fill();
+          ctx.strokeStyle = strokeColor;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          ctx.fillStyle = 'white';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(text, centerX, centerY);
+          
+          if (subtext) {
+            ctx.font = '12px Arial';
+            ctx.fillText(subtext, centerX, centerY + 15);
+          }
+        }
+
+        // Function to draw an arrow
+        function drawArrow(ctx, fromX, fromY, toX, toY, color = '#212529', isDashed = false) {
+          const headLength = 10;
+          const angle = Math.atan2(toY - fromY, toX - fromX);
+          
+          ctx.beginPath();
+          ctx.moveTo(fromX, fromY);
+          ctx.lineTo(toX, toY);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          
+          if (isDashed) {
+            ctx.setLineDash([5, 5]);
+          } else {
+            ctx.setLineDash([]);
+          }
+          
+          ctx.stroke();
+          ctx.setLineDash([]);
+          
+          // Draw arrowhead
+          ctx.beginPath();
+          ctx.moveTo(toX, toY);
+          ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI/6), toY - headLength * Math.sin(angle - Math.PI/6));
+          ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI/6), toY - headLength * Math.sin(angle + Math.PI/6));
+          ctx.closePath();
+          ctx.fillStyle = color;
+          ctx.fill();
+        }
+
+        // Function to draw an info block with text
+        function drawInfoBlock(ctx, x, y, width, height, fillColor, strokeColor, title, lines) {
+          roundRect(ctx, x, y, width, height, 5, fillColor, strokeColor);
+          
+          ctx.fillStyle = '#212529';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(title, x + width/2, y + 25);
+          
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'left';
+          for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], x + 10, y + 50 + i * 20);
+          }
+        }
+
+        // Function to draw the main process flow elements
+        function drawProcessFlow(ctx) {
+          // Start
+          roundRect(ctx, 550, 90, 100, 50, 25, '#4caf50', '#2e7d32');
+          ctx.fillStyle = 'white';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Start', 600, 120);
+          
+          // User executes script
+          drawProcessBox(ctx, 500, 170, 200, 50, 5, '#64b5f6', '#1976d2', 'User executes PowerShell Script');
+          
+          // PowerShell.exe starts
+          drawProcessBox(ctx, 500, 250, 200, 70, 5, '#ab47bc', '#7b1fa2', 'Process: PowerShell.exe', 
+                        'Event ID: 4688 (Process Creation)', 'Command: thundr_encrypted_loader.ps1');
+          
+          // Password verification
+          drawDiamond(ctx, 600, 375, 100, 50, '#ffb74d', '#ef6c00', 'Password Check', '"passw0rd111"');
+          
+          // Get hostname
+          drawProcessBox(ctx, 500, 430, 200, 50, 5, '#26a69a', '#00796b', 'Get Hostname ($env:COMPUTERNAME)');
+          
+          // Create encryption key
+          drawProcessBox(ctx, 500, 510, 200, 60, 5, '#ff7043', '#e64a19', 'Create Encryption Key', 
+                        'Function: Get-EncryptionKey');
+          
+          // C# Compilation
+          drawProcessBox(ctx, 500, 600, 200, 80, 5, '#42a5f5', '#1565c0', 'Process: C# Compiler (csc.exe)', 
+                        'Event ID: 4688 (Process Creation)', 'CSharpCodeProvider.CompileAssembly');
+          
+          // Temporary File Creation
+          drawProcessBox(ctx, 500, 710, 200, 60, 5, '#26a69a', '#00796b', 'Create Temporary DLL', 
+                        'Location: %TEMP%\\*.dll');
+          
+          // Read DLL into memory
+          drawProcessBox(ctx, 500, 800, 200, 50, 5, '#26a69a', '#00796b', 'Read DLL Bytes Into Memory');
+          
+          // Delete temporary file
+          drawProcessBox(ctx, 500, 880, 200, 50, 5, '#ef5350', '#c62828', 'Delete Temporary DLL');
+          
+          // DLL Encryption and Save
+          drawProcessBox(ctx, 500, 960, 200, 70, 5, '#ec407a', '#c2185b', 'Encrypt DLL with AES-256', 
+                        'Function: Encrypt-Bytes', 'Key derived from hostname');
+          
+          // Save encrypted DLL
+          drawProcessBox(ctx, 500, 1060, 200, 60, 5, '#26a69a', '#00796b', 'Save Encrypted DLL to Desktop', 
+                        'File: thundr_encrypted.bin');
+          
+          // Decrypt DLL
+          drawProcessBox(ctx, 500, 1150, 200, 60, 5, '#ec407a', '#c2185b', 'Decrypt DLL in Memory', 
+                        'Function: Decrypt-Bytes');
+          
+          // Load Assembly
+          drawProcessBox(ctx, 500, 1240, 200, 60, 5, '#7986cb', '#3949ab', 'Load Assembly From Memory', 
+                        'Reflection.Assembly.Load()');
+          
+          // Invoke Method
+          drawProcessBox(ctx, 500, 1330, 200, 60, 5, '#7986cb', '#3949ab', 'Invoke LaunchCalculator Method', 
+                        'Using Reflection');
+          
+          // Calculator Launch
+          drawProcessBox(ctx, 500, 1420, 200, 70, 5, '#7e57c2', '#512da8', 'Process: calc.exe', 
+                        'Event ID: 4688 (Process Creation)', 'Parent: PowerShell.exe');
+          
+          // Thread Sleep
+          drawProcessBox(ctx, 500, 1520, 200, 50, 5, '#9575cd', '#512da8', 'Thread.Sleep(10000)');
+          
+          // Assembly Unload
+          drawProcessBox(ctx, 500, 1600, 200, 50, 5, '#7986cb', '#3949ab', 'Assembly Unload from Memory');
+          
+          // End
+          roundRect(ctx, 550, 1680, 100, 50, 25, '#f44336', '#c62828');
+          ctx.fillStyle = 'white';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('End', 600, 1710);
+        }
+
+        // Function to draw connector lines
+        function drawConnectors(ctx) {
+          // Main process flow connections
+          const mainConnectors = [
+            {fromX: 600, fromY: 140, toX: 600, toY: 170},
+            {fromX: 600, fromY: 220, toX: 600, toY: 250},
+            {fromX: 600, fromY: 320, toX: 600, toY: 350},
+            {fromX: 600, fromY: 400, toX: 600, toY: 430},
+            {fromX: 600, fromY: 480, toX: 600, toY: 510},
+            {fromX: 600, fromY: 570, toX: 600, toY: 600},
+            {fromX: 600, fromY: 680, toX: 600, toY: 710},
+            {fromX: 600, fromY: 770, toX: 600, toY: 800},
+            {fromX: 600, fromY: 850, toX: 600, toY: 880},
+            {fromX: 600, fromY: 930, toX: 600, toY: 960},
+            {fromX: 600, fromY: 1030, toX: 600, toY: 1060},
+            {fromX: 600, fromY: 1120, toX: 600, toY: 1150},
+            {fromX: 600, fromY: 1210, toX: 600, toY: 1240},
+            {fromX: 600, fromY: 1300, toX: 600, toY: 1330},
+            {fromX: 600, fromY: 1390, toX: 600, toY: 1420},
+            {fromX: 600, fromY: 1490, toX: 600, toY: 1520},
+            {fromX: 600, fromY: 1570, toX: 600, toY: 1600},
+            {fromX: 600, fromY: 1650, toX: 600, toY: 1680}
+          ];
+          
+          for (let i = 0; i < mainConnectors.length; i++) {
+            const conn = mainConnectors[i];
+            drawArrow(ctx, conn.fromX, conn.fromY, conn.toX, conn.toY);
+          }
+          
+          // Password check fail path
+          drawArrow(ctx, 550, 375, 150, 375, '#f44336', true);
+          drawArrow(ctx, 150, 375, 150, 1710, '#f44336', true);
+          drawArrow(ctx, 150, 1710, 550, 1710, '#f44336', true);
+          
+          // Add labels for password check fail path
+          ctx.fillStyle = '#d32f2f';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'left';
+          ctx.fillText('Incorrect Password', 170, 355);
+          ctx.fillText('Script Terminates', 190, 370);
+          
+          // Additional information box connections
+          drawArrow(ctx, 800, 375, 675, 375, '#9e9e9e', true);
+          drawArrow(ctx, 800, 540, 700, 540, '#9e9e9e', true);
+          drawArrow(ctx, 800, 1045, 700, 1000, '#9e9e9e', true);
+          drawArrow(ctx, 800, 1480, 700, 1455, '#9e9e9e', true);
+          
+          drawArrow(ctx, 300, 200, 500, 200, '#9e9e9e', true);
+          drawArrow(ctx, 300, 880, 500, 880, '#9e9e9e', true);
+          drawArrow(ctx, 300, 1450, 500, 1450, '#9e9e9e', true);
+        }
+
+        // Function to draw additional information blocks
+        function drawInfoBlocks(ctx) {
+          // Password Processing
+          roundRect(ctx, 800, 320, 350, 120, 5, '#e0e0e0', '#9e9e9e');
+          ctx.fillStyle = '#212529';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Password Processing Code', 975, 340);
+          
+          ctx.font = '10px Arial';
+          ctx.textAlign = 'start';
+          ctx.fillText('$correctPassword = "passw0rd111"', 810, 360);
+          ctx.fillText('$inputPassword = Read-Host "Please enter password" -AsSecureString', 810, 375);
+          ctx.fillText('$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR(', 810, 390);
+          ctx.fillText('    $inputPassword)', 810, 405);
+          ctx.fillText('$plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(', 810, 420);
+          ctx.fillText('    $BSTR)', 810, 435);
+          
+          // Hostname Key Generation
+          roundRect(ctx, 800, 480, 350, 140, 5, '#e0e0e0', '#9e9e9e');
+          ctx.fillStyle = '#212529';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('Hostname-Based Key Generation', 975, 500);
+          
+          ctx.font = '10px Arial';
+          ctx.textAlign = 'start';
+          ctx.fillText('function Get-EncryptionKey {', 810, 520);
+          ctx.fillText('    param ([string]$Hostname)', 810, 535);
+          ctx.fillText('    # Create deterministic key based on hostname', 810, 550);
+          ctx.fillText('    $hostnameBytes = [System.Text.Encoding]::UTF8.GetBytes($Hostname)', 810, 565);
+          ctx.fillText('    # Pad or hash to get 32-byte key for AES-256', 810, 580);
+          ctx.fillText('    $keyBytes = New-Object byte[] 32', 810, 595);
+          ctx.fillText('    # Complex logic to ensure proper key length', 810, 610);
+          
+          // AES Encryption
+          roundRect(ctx, 800, 960, 350, 170, 5, '#e0e0e0', '#9e9e9e');
+          ctx.fillStyle = '#212529';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('AES-256 Encryption Function', 975, 980);
+          
+          ctx.font = '10px Arial';
+          ctx.textAlign = 'start';
+          ctx.fillText('function Encrypt-Bytes {', 810, 1000);
+          ctx.fillText('    param ([byte[]]$Data, [byte[]]$Key)', 810, 1015);
+          ctx.fillText('    $aes = [System.Security.Cryptography.Aes]::Create()', 810, 1030);
+          ctx.fillText('    $aes.Key = $Key', 810, 1045);
+          ctx.fillText('    $aes.GenerateIV() # Generate random IV', 810, 1060);
+          ctx.fillText('    $msEncrypt = New-Object System.IO.MemoryStream', 810, 1075);
+          ctx.fillText('    $msEncrypt.Write($iv, 0, $iv.Length) # Write IV at beginning', 810, 1090);
+          ctx.fillText('    $encryptor = $aes.CreateEncryptor()', 810, 1105);
+          ctx.fillText('    # CryptoStream writes encrypted content to memory stream', 810, 1120);
+          
+          // Calculator ThundrCalculator Class
+          roundRect(ctx, 800, 1380, 350, 170, 5, '#e0e0e0', '#9e9e9e');
+          ctx.fillStyle = '#212529';
+          ctx.font = 'bold 14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('ThundrCalculator C# Class', 975, 1400);
+          
+          ctx.font = '10px Arial';
+          ctx.textAlign = 'start';
+          ctx.fillText('public class ThundrCalculator {', 810, 1420);
+          ctx.fillText('    [DllImport("kernel32.dll")]', 810, 1435);
+          ctx.fillText('    public static extern IntPtr GetConsoleWindow();', 810, 1450);
+          ctx.fillText('    [DllImport("user32.dll")]', 810, 1465);
+          ctx.fillText('    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);', 810, 1480);
+          ctx.fillText('    private const int SW_HIDE = 0;', 810, 1495);
+          ctx.fillText('    public static void LaunchCalculator() {', 810, 1510);
+          ctx.fillText('        // Hide console window if it exists', 810, 1525);
+          ctx.fillText('        Process.Start("calc.exe");', 810, 1540);
+          
+          // PowerShell Details
+          const powershellLines = [
+            '• Parent: explorer.exe or cmd.exe',
+            '• Command Line: "...thundr_encrypted_loader.ps1"',
+            '• Script block logging: Event ID 4104',
+            '• Module logging: Event ID 4103',
+            '• Uses: System.IO.MemoryStream',
+            '• Uses: System.Security.Cryptography.Aes',
+            '• Uses: Microsoft.CSharp.CSharpCodeProvider',
+            '• Uses: System.Reflection.Assembly.Load()'
+          ];
+          drawInfoBlock(ctx, 50, 100, 250, 200, '#e0e0e0', '#9e9e9e', 'PowerShell Execution Details', powershellLines);
+          
+          // Security Monitoring Alerts
+          const securityLines = [
+            '• PowerShell script execution',
+            '• In-memory compilation',
+            '• Cryptographic operations',
+            '• Marshal PtrToStringAuto usage',
+            '• File creation on Desktop',
+            '• Assembly loading from byte array',
+            '• Process tree: PowerShell → calc.exe'
+          ];
+          drawInfoBlock(ctx, 50, 550, 250, 180, '#ffcdd2', '#d32f2f', 'Potential Security Monitoring Alerts', securityLines);
+          
+          // File System Activities
+          const fsLines = [
+            '• Temp File Creation:',
+            '  Event ID: 4663 (File Access)',
+            '• Temp File Deletion:',
+            '  Event ID: 4660 (Object Deletion)',
+            '• Desktop File Creation:',
+            '  Event ID: 4663 (File Creation)'
+          ];
+          drawInfoBlock(ctx, 50, 780, 250, 160, '#e0e0e0', '#9e9e9e', 'File System Activity Events', fsLines);
+          
+          // Windows Calculator Execution
+          const calcLines = [
+            '• Process: calc.exe',
+            '• Parent: PowerShell.exe (unusual)',
+            '• Launch Method: Process.Start()',
+            '• Console Window Hidden (SW_HIDE)',
+            '• Process Creation: Event ID 4688'
+          ];
+          drawInfoBlock(ctx, 50, 1380, 250, 140, '#e0e0e0', '#9e9e9e', 'Calculator Execution Details', calcLines);
+        }
+        
+        // Add event listener for when printing is about to happen
+        window.addEventListener('beforeprint', function() {
+            // Adjust any styles for printing if needed
+            const canvas = document.getElementById('flowchart');
+            // You might want to ensure the canvas fits well on the printed page
+        });
+    </script>
+</body>
+</html>
