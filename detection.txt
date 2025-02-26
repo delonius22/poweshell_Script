@@ -1,119 +1,101 @@
-// Start with PowerShell processes 
-#event_simpleName=ProcessRollup2 AND FileName IN ("powershell.exe", "pwsh.exe") AS initial_ps
+// Start with the most specific indicator - calc.exe process
+#event_simpleName=ProcessRollup2 
+| filter FileName="calc.exe" AS calc_process
 
-// Look for the highly specific command patterns in our script
-| filter (
-    // Look for hostname-based encryption key generation
-    (CommandLine=/.*(GetBytes\(.*hostname|computername.*sha256|aes.*key).*/i) AND
-    
-    // Look for Marshall SecureString operations with BSTR - specific to our password handling
-    (CommandLine=/.*SecureString.*BSTR.*PtrToString.*/i) AND
-    
-    // Look for our specific encryption techniques
-    (CommandLine=/.*CryptoStream.*Write.*Encrypt.*/i OR CommandLine=/.*GenerateIV.*/i) AND
-    
-    // Look for assembly loading pattern
-    (CommandLine=/.*Assembly.*Load.*byte.*/i OR CommandLine=/.*GetMethod.*Invoke.*/i)
-) AS malicious_ps
-
-// Exclude legitimate PowerShell encryption operations by filtering out known admin tools
-| filter NOT (
-    CommandLine=/.*\\Microsoft\\Exchange.*/i OR
-    CommandLine=/.*\\WindowsPowerShell\\Modules\\PKI.*/i OR 
-    CommandLine=/.*\\WindowsPowerShell\\Modules\\BitLocker.*/i OR
-    CommandLine=/.*\\Security\\Scripts.*/i
-) AS malicious_ps
-
-// Look for creating binary file on desktop - very specific to our technique
-| join inner
-  (
-    #event_simpleName=FileWritten AS file_writes
-    | filter file_writes.TargetFileName=/.*Desktop.*\\thundr_.*\.(bin|dll)$/ 
-  ) on malicious_ps.ProcessId = file_writes.ProcessId AS desktop_binary within=5m
-
-// Look for the temporary DLL creation and quick deletion pattern
-| join inner
-  (
-    #event_simpleName=FileWritten
-    | filter TargetFileName=/.*\\Temp.*\.dll$/
-    | join inner
-      (
-        #event_simpleName=FileDeleted
-        | filter TargetFileName=/.*\\Temp.*\.dll$/
-      ) on ProcessId, TargetFileName AS temp_dll_deleted 
-      within=30s
-  ) on malicious_ps.ProcessId = temp_dll_deleted.ProcessId AS compile_delete_pattern within=5m
-
-// Look specifically for calc.exe launched directly from this PowerShell process
+// Join to find PowerShell parent processes
 | join inner 
   (
     #event_simpleName=ProcessRollup2 
-    | filter FileName="calc.exe" AND 
-           ParentProcessId=malicious_ps.ProcessId
-    AS calc_process
-  ) on malicious_ps.ProcessId = calc_process.ParentProcessId AS calc_execution within=10s
+    | filter FileName IN ("powershell.exe", "pwsh.exe") AS ps_parent
+  ) on calc_process.ParentProcessId = ps_parent.ProcessId within=10s
 
-// Check for the memory hiding techniques specific to our script
+// Focus on PowerShell processes with specific command patterns
+| filter (
+    // Look for specific function names instead of wildcards
+    (ps_parent.CommandLine contains "GetEncryptionKey" OR 
+     ps_parent.CommandLine contains "Encrypt-Bytes" OR 
+     ps_parent.CommandLine contains "Decrypt-Bytes") AND
+    
+    // Look for specific memory manipulation techniques
+    (ps_parent.CommandLine contains "SecureStringToBSTR" OR 
+     ps_parent.CommandLine contains "PtrToStringAuto") AND
+    
+    // Look for assembly loading patterns
+    (ps_parent.CommandLine contains "Assembly.Load" OR 
+     ps_parent.CommandLine contains "GetMethod")
+) AS ps_parent
+
+// Join to find binary creation on desktop - specific path components instead of wildcards
 | join inner
   (
-    #event_simpleName=ModuleLoad
-    | filter (ModuleFileName=/.*kernel32\.dll.*/ OR ModuleFileName=/.*user32\.dll.*/) AND
-             ContextProcessId=malicious_ps.ContextProcessId
-    AS api_modules
-  ) on malicious_ps.ContextProcessId = api_modules.ContextProcessId AS win_api_usage within=5m
+    #event_simpleName=FileWritten 
+    | filter TargetFileName contains "Desktop" AND 
+             TargetFileName contains "thundr_" AND 
+             (TargetFileName endsWith ".bin" OR TargetFileName endsWith ".dll")
+    AS desktop_file
+  ) on ps_parent.ProcessId = desktop_file.ProcessId within=5m
 
-// Look for the memory allocation pattern showing in-memory DLL reconstruction
+// Join to find temporary DLL creation-deletion pattern
+| join inner
+  (
+    #event_simpleName=FileWritten
+    | filter TargetFileName contains "Temp" AND 
+             TargetFileName endsWith ".dll" AS temp_dll_created
+    | join inner
+      (
+        #event_simpleName=FileDeleted
+        | filter TargetFileName contains "Temp" AND 
+                 TargetFileName endsWith ".dll" AS temp_dll_deleted
+      ) on ProcessId, TargetFileName within=30s
+  ) on ps_parent.ProcessId = temp_dll_created.ProcessId within=5m
+
+// Join to find specific cryptographic API usage
+| join inner
+  (
+    #event_simpleName=ModuleLoad 
+    | filter (ModuleFileName contains "System.Security.Cryptography" OR
+              ModuleFileName contains "Reflection")
+    AS crypto_module
+  ) on ps_parent.ContextProcessId = crypto_module.ContextProcessId within=5m
+
+// Join to detect memory allocation for executable content
 | join inner
   (
     #event_simpleName=MemoryAllocationSubmitted
-    | filter AllocationFlags=0x3000 AND 
-             Protect=0x40 AND
-             ContextProcessId=malicious_ps.ContextProcessId
-    AS memory_alloc
-  ) on malicious_ps.ContextProcessId = memory_alloc.ContextProcessId AS dll_memory_map within=5m
+    | filter Protect=0x40 // PAGE_EXECUTE_READWRITE
+    AS mem_alloc
+  ) on ps_parent.ContextProcessId = mem_alloc.ContextProcessId within=5m
 
-// Detect use of thread sleep specific to our technique
-| join left_outer
-  (
-    #event_simpleName=ThreadInjection
-    | filter SuspendCount > 0 AND
-             RemoteThreadWaitTimeMs BETWEEN 9000 AND 11000
-    AS thread_sleep
-  ) on malicious_ps.ContextProcessId = thread_sleep.ContextProcessId AS sleep_behavior within=15s
-
-// Group events by host and binary file
-| groupBy([malicious_ps.ComputerName, desktop_binary.TargetFileName])
+// Group by computer and timestamp to reduce result set size
+| groupBy([ps_parent.ComputerName, format_time(calc_process._time, "yyyy-MM-dd HH")])
   {
-    // Collect detailed sequential evidence
+    // Collect only the most critical fields
     collect([
-      malicious_ps.CommandLine,
-      desktop_binary.TargetFileName,
-      compile_delete_pattern.TargetFileName as TempDllName,
-      calc_execution.ProcessId as CalcProcessId,
-      win_api_usage.ModuleFileName as WinApiModules,
-      if(exists(sleep_behavior), "10-second sleep detected", "No sleep detected") as SleepBehavior,
-      dll_memory_map.AllocationBase as MemoryAddress
-    ]) as TechniqueDetails
+      calc_process.ProcessId,
+      ps_parent.ProcessId,
+      ps_parent.CommandLine,
+      desktop_file.TargetFileName,
+      temp_dll_created.TargetFileName,
+      mem_alloc.AllocationBase
+    ]) as DetectionDetails
     
-    // Capture first event
-    min(malicious_ps._time) as FirstSeen
+    // Track first occurrence time
+    min(calc_process._time) as FirstSeen
     
-    // Collect detailed process IDs for investigation
-    collect_set([malicious_ps.ProcessId, calc_execution.ProcessId]) as RelatedProcesses
-  } AS attack_chain
+    // Track count for volume analysis
+    count() as EventCount
+  } AS detection_group
 
-// Add detailed detection context  
-| eval DetectionName = "Hostname-Encrypted DLL Launching Calculator with P/Invoke Console Hiding"
-| eval TechniqueDescription = "PowerShell script creating hostname-encrypted DLL that uses P/Invoke to hide console window, launches calculator, waits 10 seconds then unloads from memory"
-| eval MitreTechniques = "T1027.002 (Obfuscated Files: Software Packing), T1140 (Deobfuscate/Decode Files), T1055 (Process Injection), T1218 (System Binary Proxy Execution)"
+// Add detection context
+| eval TechniqueName = "Hostname-Encrypted DLL with Calculator Execution"
+| eval Description = "PowerShell creating encrypted DLL using hostname as key, launching calculator process with potential P/Invoke console hiding"
 
-// Format for incident response
+// Format output
 | sort by FirstSeen asc
 | project 
     ComputerName,
     FirstSeen, 
-    DetectionName,
-    TechniqueDescription,
-    MitreTechniques,
-    TechniqueDetails,
-    RelatedProcesses
+    EventCount,
+    TechniqueName,
+    Description,
+    DetectionDetails
