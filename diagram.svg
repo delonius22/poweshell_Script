@@ -1,0 +1,240 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200">
+  <!-- Background and grid pattern -->
+  <rect width="1200" height="1200" fill="#f8f9fa"/>
+  <pattern id="smallGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#e9ecef" stroke-width="0.5"/>
+  </pattern>
+  <rect width="1200" height="1200" fill="url(#smallGrid)" opacity="0.5"/>
+
+  <!-- Title -->
+  <text x="600" y="40" font-family="Arial" font-size="24" text-anchor="middle" font-weight="bold" fill="#212529">Detailed Process Flow: Hostname-Encrypted DLL Calculator Execution</text>
+  <text x="600" y="65" font-family="Arial" font-size="14" text-anchor="middle" fill="#495057">Windows Processes, Event IDs, and Script-Specific Implementation Details</text>
+
+  <!-- Process Flow Diagram -->
+  
+  <!-- Start -->
+  <rect x="550" y="90" width="100" height="50" rx="25" ry="25" fill="#4caf50" stroke="#2e7d32" stroke-width="2"/>
+  <text x="600" y="120" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Start</text>
+  
+  <!-- User executes script -->
+  <rect x="500" y="170" width="200" height="50" rx="5" ry="5" fill="#64b5f6" stroke="#1976d2" stroke-width="2"/>
+  <text x="600" y="200" font-family="Arial" font-size="14" text-anchor="middle" fill="white">User executes PowerShell Script</text>
+  
+  <!-- PowerShell processes -->
+  
+  <!-- PowerShell.exe starts -->
+  <rect x="500" y="250" width="200" height="70" rx="5" ry="5" fill="#ab47bc" stroke="#7b1fa2" stroke-width="2"/>
+  <text x="600" y="273" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Process: PowerShell.exe</text>
+  <text x="600" y="293" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Event ID: 4688 (Process Creation)</text>
+  <text x="600" y="310" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Command: thundr_encrypted_loader.ps1</text>
+  
+  <!-- Password verification -->
+  <polygon points="550,350 650,350 625,400 575,400" fill="#ffb74d" stroke="#ef6c00" stroke-width="2"/>
+  <text x="600" y="370" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Password Check</text>
+  <text x="600" y="385" font-family="Arial" font-size="12" text-anchor="middle" fill="white">"passw0rd111"</text>
+  
+  <!-- Get hostname -->
+  <rect x="500" y="430" width="200" height="50" rx="5" ry="5" fill="#26a69a" stroke="#00796b" stroke-width="2"/>
+  <text x="600" y="460" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Get Hostname ($env:COMPUTERNAME)</text>
+  
+  <!-- Create encryption key -->
+  <rect x="500" y="510" width="200" height="60" rx="5" ry="5" fill="#ff7043" stroke="#e64a19" stroke-width="2"/>
+  <text x="600" y="535" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Create Encryption Key</text>
+  <text x="600" y="555" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Function: Get-EncryptionKey</text>
+  
+  <!-- C# Compilation -->
+  <rect x="500" y="600" width="200" height="80" rx="5" ry="5" fill="#42a5f5" stroke="#1565c0" stroke-width="2"/>
+  <text x="600" y="625" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Process: C# Compiler (csc.exe)</text>
+  <text x="600" y="645" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Event ID: 4688 (Process Creation)</text>
+  <text x="600" y="665" font-family="Arial" font-size="12" text-anchor="middle" fill="white">CSharpCodeProvider.CompileAssembly</text>
+  
+  <!-- Temporary File Creation -->
+  <rect x="500" y="710" width="200" height="60" rx="5" ry="5" fill="#26a69a" stroke="#00796b" stroke-width="2"/>
+  <text x="600" y="735" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Create Temporary DLL</text>
+  <text x="600" y="755" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Location: %TEMP%\*.dll</text>
+  
+  <!-- Read DLL into memory -->
+  <rect x="500" y="800" width="200" height="50" rx="5" ry="5" fill="#26a69a" stroke="#00796b" stroke-width="2"/>
+  <text x="600" y="830" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Read DLL Bytes Into Memory</text>
+  
+  <!-- Delete temporary file -->
+  <rect x="500" y="880" width="200" height="50" rx="5" ry="5" fill="#ef5350" stroke="#c62828" stroke-width="2"/>
+  <text x="600" y="910" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Delete Temporary DLL</text>
+  
+  <!-- DLL Encryption and Save -->
+  <rect x="500" y="960" width="200" height="70" rx="5" ry="5" fill="#ec407a" stroke="#c2185b" stroke-width="2"/>
+  <text x="600" y="985" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Encrypt DLL with AES-256</text>
+  <text x="600" y="1005" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Function: Encrypt-Bytes</text>
+  <text x="600" y="1025" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Key derived from hostname</text>
+  
+  <!-- Save encrypted DLL -->
+  <rect x="500" y="1060" width="200" height="60" rx="5" ry="5" fill="#26a69a" stroke="#00796b" stroke-width="2"/>
+  <text x="600" y="1085" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Save Encrypted DLL to Desktop</text>
+  <text x="600" y="1105" font-family="Arial" font-size="12" text-anchor="middle" fill="white">File: thundr_encrypted.bin</text>
+  
+  <!-- Calculator Launch Section -->
+  
+  <!-- Decrypt DLL -->
+  <rect x="500" y="1150" width="200" height="60" rx="5" ry="5" fill="#ec407a" stroke="#c2185b" stroke-width="2"/>
+  <text x="600" y="1175" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Decrypt DLL in Memory</text>
+  <text x="600" y="1195" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Function: Decrypt-Bytes</text>
+  
+  <!-- Load Assembly -->
+  <rect x="500" y="1240" width="200" height="60" rx="5" ry="5" fill="#7986cb" stroke="#3949ab" stroke-width="2"/>
+  <text x="600" y="1265" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Load Assembly From Memory</text>
+  <text x="600" y="1285" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Reflection.Assembly.Load()</text>
+  
+  <!-- Invoke Method -->
+  <rect x="500" y="1330" width="200" height="60" rx="5" ry="5" fill="#7986cb" stroke="#3949ab" stroke-width="2"/>
+  <text x="600" y="1355" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Invoke LaunchCalculator Method</text>
+  <text x="600" y="1375" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Using Reflection</text>
+  
+  <!-- Calculator Launch -->
+  <rect x="500" y="1420" width="200" height="70" rx="5" ry="5" fill="#7e57c2" stroke="#512da8" stroke-width="2"/>
+  <text x="600" y="1445" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Process: calc.exe</text>
+  <text x="600" y="1465" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Event ID: 4688 (Process Creation)</text>
+  <text x="600" y="1485" font-family="Arial" font-size="12" text-anchor="middle" fill="white">Parent: PowerShell.exe</text>
+  
+  <!-- Thread Sleep -->
+  <rect x="500" y="1520" width="200" height="50" rx="5" ry="5" fill="#9575cd" stroke="#512da8" stroke-width="2"/>
+  <text x="600" y="1550" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Thread.Sleep(10000)</text>
+  
+  <!-- Assembly Unload -->
+  <rect x="500" y="1600" width="200" height="50" rx="5" ry="5" fill="#7986cb" stroke="#3949ab" stroke-width="2"/>
+  <text x="600" y="1630" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Assembly Unload from Memory</text>
+  
+  <!-- End -->
+  <rect x="550" y="1680" width="100" height="50" rx="25" ry="25" fill="#f44336" stroke="#c62828" stroke-width="2"/>
+  <text x="600" y="1710" font-family="Arial" font-size="14" text-anchor="middle" fill="white">End</text>
+  
+  <!-- Connectors -->
+  <line x1="600" y1="140" x2="600" y2="170" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="220" x2="600" y2="250" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="320" x2="600" y2="350" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="400" x2="600" y2="430" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="480" x2="600" y2="510" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="570" x2="600" y2="600" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="680" x2="600" y2="710" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="770" x2="600" y2="800" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="850" x2="600" y2="880" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="930" x2="600" y2="960" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="1030" x2="600" y2="1060" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="1120" x2="600" y2="1150" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="1210" x2="600" y2="1240" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="1300" x2="600" y2="1330" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="1390" x2="600" y2="1420" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="1490" x2="600" y2="1520" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="1570" x2="600" y2="1600" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="600" y1="1650" x2="600" y2="1680" stroke="#212529" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Password check fail path -->
+  <line x1="550" y1="375" x2="150" y2="375" stroke="#f44336" stroke-width="2" stroke-dasharray="5,5"/>
+  <line x1="150" y1="375" x2="150" y2="1710" stroke="#f44336" stroke-width="2" stroke-dasharray="5,5"/>
+  <line x1="150" y1="1710" x2="550" y2="1710" stroke="#f44336" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  <text x="170" y="355" font-family="Arial" font-size="12" fill="#d32f2f">Incorrect Password</text>
+  <text x="190" y="370" font-family="Arial" font-size="12" fill="#d32f2f">Script Terminates</text>
+  
+  <!-- Additional information and annotations -->
+  
+  <!-- Detailed Code Blocks -->
+  
+  <!-- Password Processing -->
+  <rect x="800" y="320" width="350" height="120" rx="5" ry="5" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+  <text x="975" y="340" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold" fill="#212529">Password Processing Code</text>
+  <text x="810" y="360" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">$correctPassword = "passw0rd111"</text>
+  <text x="810" y="375" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">$inputPassword = Read-Host "Please enter password" -AsSecureString</text>
+  <text x="810" y="390" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR(</text>
+  <text x="810" y="405" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $inputPassword)</text>
+  <text x="810" y="420" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">$plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(</text>
+  <text x="810" y="435" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $BSTR)</text>
+  <line x1="800" y1="375" x2="675" y2="375" stroke="#9e9e9e" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  
+  <!-- Hostname Key Generation -->
+  <rect x="800" y="480" width="350" height="140" rx="5" ry="5" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+  <text x="975" y="500" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold" fill="#212529">Hostname-Based Key Generation</text>
+  <text x="810" y="520" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">function Get-EncryptionKey {</text>
+  <text x="810" y="535" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    param ([string]$Hostname)</text>
+  <text x="810" y="550" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    # Create deterministic key based on hostname</text>
+  <text x="810" y="565" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $hostnameBytes = [System.Text.Encoding]::UTF8.GetBytes($Hostname)</text>
+  <text x="810" y="580" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    # Pad or hash to get 32-byte key for AES-256</text>
+  <text x="810" y="595" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $keyBytes = New-Object byte[] 32</text>
+  <text x="810" y="610" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    # Complex logic to ensure proper key length</text>
+  <line x1="800" y1="540" x2="700" y2="540" stroke="#9e9e9e" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  
+  <!-- AES Encryption -->
+  <rect x="800" y="960" width="350" height="170" rx="5" ry="5" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+  <text x="975" y="980" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold" fill="#212529">AES-256 Encryption Function</text>
+  <text x="810" y="1000" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">function Encrypt-Bytes {</text>
+  <text x="810" y="1015" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    param ([byte[]]$Data, [byte[]]$Key)</text>
+  <text x="810" y="1030" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $aes = [System.Security.Cryptography.Aes]::Create()</text>
+  <text x="810" y="1045" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $aes.Key = $Key</text>
+  <text x="810" y="1060" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $aes.GenerateIV() # Generate random IV</text>
+  <text x="810" y="1075" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $msEncrypt = New-Object System.IO.MemoryStream</text>
+  <text x="810" y="1090" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $msEncrypt.Write($iv, 0, $iv.Length) # Write IV at beginning</text>
+  <text x="810" y="1105" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    $encryptor = $aes.CreateEncryptor()</text>
+  <text x="810" y="1120" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    # CryptoStream writes encrypted content to memory stream</text>
+  <line x1="800" y1="1045" x2="700" y2="1000" stroke="#9e9e9e" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  
+  <!-- Calculator ThundrCalculator Class -->
+  <rect x="800" y="1380" width="350" height="170" rx="5" ry="5" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+  <text x="975" y="1400" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold" fill="#212529">ThundrCalculator C# Class</text>
+  <text x="810" y="1420" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">public class ThundrCalculator {</text>
+  <text x="810" y="1435" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    [DllImport("kernel32.dll")]</text>
+  <text x="810" y="1450" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    public static extern IntPtr GetConsoleWindow();</text>
+  <text x="810" y="1465" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    [DllImport("user32.dll")]</text>
+  <text x="810" y="1480" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);</text>
+  <text x="810" y="1495" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    private const int SW_HIDE = 0;</text>
+  <text x="810" y="1510" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">    public static void LaunchCalculator() {</text>
+  <text x="810" y="1525" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">        // Hide console window if it exists</text>
+  <text x="810" y="1540" font-family="Arial" font-size="10" fill="#212529" text-anchor="start">        Process.Start("calc.exe");</text>
+  <line x1="800" y1="1480" x2="700" y2="1455" stroke="#9e9e9e" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  
+  <!-- System Activity Analysis -->
+  
+  <!-- PowerShell Details -->
+  <rect x="50" y="100" width="250" height="200" rx="5" ry="5" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+  <text x="175" y="125" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold" fill="#212529">PowerShell Execution Details</text>
+  <text x="60" y="150" font-family="Arial" font-size="12" fill="#212529">• Parent: explorer.exe or cmd.exe</text>
+  <text x="60" y="170" font-family="Arial" font-size="12" fill="#212529">• Command Line: "...thundr_encrypted_loader.ps1"</text>
+  <text x="60" y="190" font-family="Arial" font-size="12" fill="#212529">• Script block logging: Event ID 4104</text>
+  <text x="60" y="210" font-family="Arial" font-size="12" fill="#212529">• Module logging: Event ID 4103</text>
+  <text x="60" y="230" font-family="Arial" font-size="12" fill="#212529">• Uses: System.IO.MemoryStream</text>
+  <text x="60" y="250" font-family="Arial" font-size="12" fill="#212529">• Uses: System.Security.Cryptography.Aes</text>
+  <text x="60" y="270" font-family="Arial" font-size="12" fill="#212529">• Uses: Microsoft.CSharp.CSharpCodeProvider</text>
+  <text x="60" y="290" font-family="Arial" font-size="12" fill="#212529">• Uses: System.Reflection.Assembly.Load()</text>
+  <line x1="300" y1="200" x2="500" y2="200" stroke="#9e9e9e" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  
+  <!-- Security Monitoring Alerts -->
+  <rect x="50" y="550" width="250" height="180" rx="5" ry="5" fill="#ffcdd2" stroke="#d32f2f" stroke-width="2"/>
+  <text x="175" y="575" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold" fill="#b71c1c">Potential Security Monitoring Alerts</text>
+  <text x="60" y="600" font-family="Arial" font-size="12" fill="#b71c1c">• PowerShell script execution</text>
+  <text x="60" y="620" font-family="Arial" font-size="12" fill="#b71c1c">• In-memory compilation</text>
+  <text x="60" y="640" font-family="Arial" font-size="12" fill="#b71c1c">• Cryptographic operations</text>
+  <text x="60" y="660" font-family="Arial" font-size="12" fill="#b71c1c">• Marshal PtrToStringAuto usage</text>
+  <text x="60" y="680" font-family="Arial" font-size="12" fill="#b71c1c">• File creation on Desktop</text>
+  <text x="60" y="700" font-family="Arial" font-size="12" fill="#b71c1c">• Assembly loading from byte array</text>
+  <text x="60" y="720" font-family="Arial" font-size="12" fill="#b71c1c">• Process tree: PowerShell → calc.exe</text>
+  
+  <!-- File System Activities -->
+  <rect x="50" y="780" width="250" height="160" rx="5" ry="5" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+  <text x="175" y="805" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold" fill="#212529">File System Activity Events</text>
+  <text x="60" y="830" font-family="Arial" font-size="12" fill="#212529">• Temp File Creation:</text>
+  <text x="70" y="850" font-family="Arial" font-size="12" fill="#212529">Event ID: 4663 (File Access)</text>
+  <text x="60" y="870" font-family="Arial" font-size="12" fill="#212529">• Temp File Deletion:</text>
+  <text x="70" y="890" font-family="Arial" font-size="12" fill="#212529">Event ID: 4660 (Object Deletion)</text>
+  <text x="60" y="910" font-family="Arial" font-size="12" fill="#212529">• Desktop File Creation:</text>
+  <text x="70" y="930" font-family="Arial" font-size="12" fill="#212529">Event ID: 4663 (File Creation)</text>
+  <line x1="300" y1="880" x2="500" y2="880" stroke="#9e9e9e" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  
+  <!-- Windows Calculator Execution -->
+  <rect x="50" y="1380" width="250" height="140" rx="5" ry="5" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+  <text x="175" y="1405" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold" fill="#212529">Calculator Execution Details</text>
+  <text x="60" y="1430" font-family="Arial" font-size="12" fill="#212529">• Process: calc.exe</text>
+  <text x="60" y="1450" font-family="Arial" font-size="12" fill="#212529">• Parent: PowerShell.exe (unusual)</text>
+  <text x="60" y="1470" font-family="Arial" font-size="12" fill="#212529">• Launch Method: Process.Start()</text>
+  <text x="60" y="1490" font-family="Arial" font-size="12" fill="#212529">• Console Window Hidden (SW_HIDE)</text>
+  <text x="60" y="1510" font-family="Arial" font-size="12" fill="#212529">• Process Creation: Event ID 4688</text>
+  <line x1="300" y1="1450" x2="500" y2="1450" stroke="#9e9e9e" stroke-width="1" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+  
+  <!-- In-Memory Assembly Loading -->
+  <rect x="850" y="1180" width="300" height="160
