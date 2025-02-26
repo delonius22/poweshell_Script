@@ -1,6 +1,7 @@
 # thundr_encrypted_loader.ps1
-# This script creates a C# DLL, encrypts it using the hostname as part of the key,
-# drops the encrypted DLL to the desktop, and loads it when the correct password is provided
+# This script creates a C# DLL that launches calculator, encrypts it using PBKDF2 with
+# the hostname as the password, saves it to desktop, and then loads it back from the encrypted file.
+# All files are stored on the desktop with the "thundr_" prefix.
 
 # Password protection
 $correctPassword = "passw0rd111"
@@ -16,15 +17,180 @@ if ($plainPassword -ne $correctPassword) {
 
 Write-Host "Password correct. Proceeding with execution..." -ForegroundColor Green
 
-# Get hostname for use in encryption key
+# Get hostname for use as the encryption password
 $hostname = $env:COMPUTERNAME
-Write-Host "Using hostname '$hostname' as part of the encryption key"
+Write-Host "Using hostname '$hostname' as encryption password seed"
 
-# Define the paths
+# Define the paths - all on desktop
 $desktopPath = [Environment]::GetFolderPath("Desktop")
+$csharpFilePath = Join-Path -Path $desktopPath -ChildPath "thundr_calculator.cs"
+$tempDllPath = Join-Path -Path $desktopPath -ChildPath "thundr_unencrypted.dll"
 $encryptedDllPath = Join-Path -Path $desktopPath -ChildPath "thundr_encrypted.bin"
 
-# C# code for the DLL that will launch calculator
+# Function to create a secure encryption key using PBKDF2
+function Get-PBKDF2Key {
+    param (
+        [string]$Password,
+        [byte[]]$Salt = $null,
+        [int]$Iterations = 10000,
+        [int]$KeySize = 32  # 256 bits for AES-256
+    )
+    
+    # Generate a random salt if none provided
+    if ($null -eq $Salt) {
+        $Salt = New-Object byte[] 16
+        $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+        $rng.GetBytes($Salt)
+        $rng.Dispose()
+    }
+    
+    # Use Rfc2898DeriveBytes for PBKDF2 implementation
+    $pbkdf2 = New-Object System.Security.Cryptography.Rfc2898DeriveBytes($Password, $Salt, $Iterations)
+    $key = $pbkdf2.GetBytes($KeySize)
+    $pbkdf2.Dispose()
+    
+    # Return both the key and salt
+    return @{
+        Key = $key
+        Salt = $Salt
+    }
+}
+
+# Function to encrypt a byte array using PBKDF2 and AES
+function Encrypt-BytesPBKDF2 {
+    param (
+        [byte[]]$Data,
+        [string]$Password,
+        [byte[]]$Salt = $null,
+        [int]$Iterations = 10000
+    )
+    
+    # Derive the key using PBKDF2
+    $keyData = Get-PBKDF2Key -Password $Password -Salt $Salt -Iterations $Iterations
+    $key = $keyData.Key
+    $salt = $keyData.Salt
+    
+    # Create AES encryption object
+    $aes = [System.Security.Cryptography.Aes]::Create()
+    $aes.Key = $key
+    $aes.GenerateIV()
+    $iv = $aes.IV
+    
+    # Create memory streams and crypto stream for encryption
+    $msEncrypt = New-Object System.IO.MemoryStream
+    
+    # Structure of the output: [salt length (4 bytes)][salt][iv length (4 bytes)][iv][encrypted data]
+    # Store salt length and salt
+    $saltLengthBytes = [System.BitConverter]::GetBytes($salt.Length)
+    $msEncrypt.Write($saltLengthBytes, 0, 4)
+    $msEncrypt.Write($salt, 0, $salt.Length)
+    
+    # Store IV length and IV
+    $ivLengthBytes = [System.BitConverter]::GetBytes($iv.Length)
+    $msEncrypt.Write($ivLengthBytes, 0, 4)
+    $msEncrypt.Write($iv, 0, $iv.Length)
+    
+    # Create encryptor and crypto stream
+    $encryptor = $aes.CreateEncryptor()
+    $csEncrypt = New-Object System.Security.Cryptography.CryptoStream $msEncrypt, $encryptor, "Write"
+    
+    # Write the data to the crypto stream
+    $csEncrypt.Write($Data, 0, $Data.Length)
+    $csEncrypt.FlushFinalBlock()
+    
+    # Get the encrypted data
+    $encryptedData = $msEncrypt.ToArray()
+    
+    # Clean up resources
+    $csEncrypt.Close()
+    $msEncrypt.Close()
+    $aes.Dispose()
+    
+    return $encryptedData
+}
+
+# Function to decrypt a byte array encrypted with PBKDF2 and AES
+function Decrypt-BytesPBKDF2 {
+    param (
+        [byte[]]$EncryptedData,
+        [string]$Password,
+        [int]$Iterations = 10000
+    )
+    
+    try {
+        # Create a memory stream to read the encrypted data
+        $ms = New-Object System.IO.MemoryStream($EncryptedData)
+        
+        # Read the salt length
+        $saltLengthBytes = New-Object byte[] 4
+        $ms.Read($saltLengthBytes, 0, 4) | Out-Null
+        $saltLength = [System.BitConverter]::ToInt32($saltLengthBytes, 0)
+        
+        # Read the salt
+        $salt = New-Object byte[] $saltLength
+        $ms.Read($salt, 0, $saltLength) | Out-Null
+        
+        # Read the IV length
+        $ivLengthBytes = New-Object byte[] 4
+        $ms.Read($ivLengthBytes, 0, 4) | Out-Null
+        $ivLength = [System.BitConverter]::ToInt32($ivLengthBytes, 0)
+        
+        # Read the IV
+        $iv = New-Object byte[] $ivLength
+        $ms.Read($iv, 0, $ivLength) | Out-Null
+        
+        # Derive the key using PBKDF2 with the same salt
+        $keyData = Get-PBKDF2Key -Password $Password -Salt $salt -Iterations $Iterations
+        $key = $keyData.Key
+        
+        # Read the encrypted content
+        $encryptedContent = New-Object byte[] ($EncryptedData.Length - 4 - $saltLength - 4 - $ivLength)
+        $ms.Read($encryptedContent, 0, $encryptedContent.Length) | Out-Null
+        $ms.Close()
+        
+        # Create AES decryption object
+        $aes = [System.Security.Cryptography.Aes]::Create()
+        $aes.Key = $key
+        $aes.IV = $iv
+        
+        # Create memory stream and crypto stream for decryption
+        $msDecrypt = New-Object System.IO.MemoryStream($encryptedContent)
+        $decryptor = $aes.CreateDecryptor()
+        $csDecrypt = New-Object System.Security.Cryptography.CryptoStream $msDecrypt, $decryptor, "Read"
+        
+        # Create output memory stream
+        $msOutput = New-Object System.IO.MemoryStream
+        
+        # Buffer for reading data
+        $buffer = New-Object byte[] 4096
+        $bytesRead = 0
+        
+        # Read decrypted data in chunks
+        do {
+            $bytesRead = $csDecrypt.Read($buffer, 0, $buffer.Length)
+            if ($bytesRead -gt 0) {
+                $msOutput.Write($buffer, 0, $bytesRead)
+            }
+        } while ($bytesRead -gt 0)
+        
+        # Get the decrypted data
+        $decryptedData = $msOutput.ToArray()
+        
+        # Clean up resources
+        $csDecrypt.Close()
+        $msDecrypt.Close()
+        $msOutput.Close()
+        $aes.Dispose()
+        
+        return $decryptedData
+    }
+    catch {
+        Write-Error "Decryption error: $_"
+        throw
+    }
+}
+
+# C# code for the DLL that will launch calculator - removed the $ string interpolation
 $csharpCode = @'
 using System;
 using System.Diagnostics;
@@ -63,182 +229,169 @@ public class ThundrCalculator
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            // Using string concatenation instead of interpolation to avoid $ character
+            Console.WriteLine("Error: " + ex.Message);
         }
     }
 }
 '@
 
-# Function to create an encryption key based on hostname
-function Get-EncryptionKey {
-    param (
-        [string]$Hostname
-    )
-    
-    # Create a deterministic key based on the hostname
-    # This ensures the encryption is tied to this specific machine
-    $hostnameBytes = [System.Text.Encoding]::UTF8.GetBytes($Hostname)
-    
-    # We need a 32-byte key for AES-256
-    # If hostname is too short, we'll repeat it; if too long, we'll hash it
-    if ($hostnameBytes.Length -lt 32) {
-        $keyBytes = New-Object byte[] 32
-        for ($i = 0; $i -lt 32; $i++) {
-            $keyBytes[$i] = $hostnameBytes[$i % $hostnameBytes.Length]
+# Save C# code to desktop
+Write-Host "Writing C# code to: $csharpFilePath" -ForegroundColor Cyan
+[System.IO.File]::WriteAllText($csharpFilePath, $csharpCode)
+
+try {
+    # Ensure System.CodeDom is available (different approach to avoid Add-Type errors)
+    try {
+        $csProvider = New-Object Microsoft.CSharp.CSharpCodeProvider
+        Write-Host "Successfully loaded CSharp compiler services" -ForegroundColor Green
+    } catch {
+        Write-Host "Failed to load CSharp compiler. Trying to load assembly directly..." -ForegroundColor Yellow
+        
+        # Alternative approach to load assembly manually if Add-Type fails
+        $systemCodeDomPath = [System.IO.Path]::Combine([System.Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory(), "System.CodeDom.dll")
+        if (Test-Path $systemCodeDomPath) {
+            [System.Reflection.Assembly]::LoadFile($systemCodeDomPath) | Out-Null
+            Write-Host "Loaded System.CodeDom from: $systemCodeDomPath" -ForegroundColor Green
+        } else {
+            $mscorlibPath = [System.Reflection.Assembly]::Load("mscorlib").Location
+            $runtimePath = [System.IO.Path]::GetDirectoryName($mscorlibPath)
+            Write-Host "Runtime path: $runtimePath" -ForegroundColor Cyan
+            $codeDomCandidates = Get-ChildItem -Path $runtimePath -Filter "System.CodeDom*.dll" -Recurse -ErrorAction SilentlyContinue
+            if ($codeDomCandidates.Count -gt 0) {
+                [System.Reflection.Assembly]::LoadFile($codeDomCandidates[0].FullName) | Out-Null
+                Write-Host "Loaded alternative System.CodeDom from: $($codeDomCandidates[0].FullName)" -ForegroundColor Green
+            } else {
+                Write-Error "Unable to find System.CodeDom.dll. Cannot compile C# code."
+                exit 1
+            }
         }
-        return $keyBytes
+        
+        $csProvider = New-Object Microsoft.CSharp.CSharpCodeProvider
     }
-    else {
-        # If the hostname produces too many bytes, hash it to get a fixed length
-        $sha256 = [System.Security.Cryptography.SHA256]::Create()
-        return $sha256.ComputeHash($hostnameBytes)
+    
+    # Configure the compiler - with explicit assembly references to avoid duplicates
+    $params = New-Object System.CodeDom.Compiler.CompilerParameters
+    $params.GenerateInMemory = $false
+    $params.OutputAssembly = $tempDllPath
+    $params.GenerateExecutable = $false
+    $params.TreatWarningsAsErrors = $false
+    $params.WarningLevel = 4
+    
+    # Add only the necessary assemblies, explicitly named to avoid duplicates
+    $params.ReferencedAssemblies.Add("System.dll") | Out-Null
+    $params.ReferencedAssemblies.Add("System.Core.dll") | Out-Null
+    
+    # Compile the code
+    Write-Host "Compiling C# code to DLL at: $tempDllPath" -ForegroundColor Cyan
+    $results = $csProvider.CompileAssemblyFromSource($params, $csharpCode)
+    
+    # Check for compilation errors
+    if ($results.Errors.Count -gt 0) {
+        Write-Host "Compilation errors:" -ForegroundColor Red
+        foreach ($error in $results.Errors) {
+            Write-Host "  $error" -ForegroundColor Red
+        }
+        exit 1
+    }
+    
+    Write-Host "Code compiled successfully to: $tempDllPath" -ForegroundColor Green
+    
+    # Read the compiled DLL as bytes
+    Write-Host "Reading compiled DLL bytes..." -ForegroundColor Cyan
+    $dllBytes = [System.IO.File]::ReadAllBytes($tempDllPath)
+    Write-Host "DLL size: $($dllBytes.Length) bytes" -ForegroundColor Cyan
+    
+    # Verify DLL has valid PE header
+    if ($dllBytes[0] -eq 0x4D -and $dllBytes[1] -eq 0x5A) {
+        Write-Host "DLL has valid PE header" -ForegroundColor Green
+    } else {
+        Write-Host "WARNING: DLL does not have valid PE header" -ForegroundColor Red
+    }
+    
+    # Encrypt the DLL using PBKDF2 with hostname as password
+    Write-Host "Encrypting the DLL with PBKDF2 using hostname as password..." -ForegroundColor Cyan
+    $encryptedDllBytes = Encrypt-BytesPBKDF2 -Data $dllBytes -Password $hostname
+    Write-Host "Encrypted size: $($encryptedDllBytes.Length) bytes" -ForegroundColor Cyan
+    
+    # Save the encrypted DLL to the desktop
+    Write-Host "Writing encrypted DLL to: $encryptedDllPath" -ForegroundColor Cyan
+    [System.IO.File]::WriteAllBytes($encryptedDllPath, $encryptedDllBytes)
+    Write-Host "Encrypted DLL created successfully at: $encryptedDllPath" -ForegroundColor Green
+    
+    # Now decrypt and load the DLL
+    Write-Host "Reading encrypted DLL from disk..." -ForegroundColor Cyan
+    $fileEncryptedBytes = [System.IO.File]::ReadAllBytes($encryptedDllPath)
+    
+    Write-Host "Decrypting DLL using hostname..." -ForegroundColor Cyan
+    $decryptedDllBytes = Decrypt-BytesPBKDF2 -EncryptedData $fileEncryptedBytes -Password $hostname
+    Write-Host "Decrypted size: $($decryptedDllBytes.Length) bytes" -ForegroundColor Cyan
+    
+    # Verify decrypted bytes have valid PE header
+    if ($decryptedDllBytes[0] -eq 0x4D -and $decryptedDllBytes[1] -eq 0x5A) {
+        Write-Host "Decrypted DLL has valid PE header" -ForegroundColor Green
+    } else {
+        Write-Host "WARNING: Decrypted DLL does not have valid PE header" -ForegroundColor Red
+        Write-Host "First 20 bytes: $($decryptedDllBytes[0..19] -join ', ')" -ForegroundColor Yellow
+        throw "Decryption failed - invalid PE file"
+    }
+    
+    # Load the decrypted assembly
+    Write-Host "Loading decrypted assembly..." -ForegroundColor Cyan
+    $assemblyLoadContext = [System.Reflection.Assembly]::Load($decryptedDllBytes)
+    
+    if ($null -eq $assemblyLoadContext) {
+        throw "Assembly load failed - returned null"
+    }
+    
+    Write-Host "Assembly loaded successfully: $($assemblyLoadContext.FullName)" -ForegroundColor Green
+    
+    # Get available types in the assembly for debugging
+    $availableTypes = $assemblyLoadContext.GetTypes()
+    Write-Host "Types in the assembly:" -ForegroundColor Cyan
+    $availableTypes | ForEach-Object { Write-Host "  - $($_.FullName)" -ForegroundColor Cyan }
+    
+    # Get the ThundrCalculator type
+    $calculatorType = $assemblyLoadContext.GetType("ThundrCalculator")
+    
+    if ($null -eq $calculatorType) {
+        throw "Could not find ThundrCalculator type in the assembly"
+    }
+    
+    Write-Host "Found ThundrCalculator type" -ForegroundColor Green
+    
+    # List available methods on the type
+    $availableMethods = $calculatorType.GetMethods()
+    Write-Host "Methods available:" -ForegroundColor Cyan
+    $availableMethods | ForEach-Object { Write-Host "  - $($_.Name)" -ForegroundColor Cyan }
+    
+    # Get the LaunchCalculator method
+    $launchMethod = $calculatorType.GetMethod("LaunchCalculator")
+    
+    if ($null -eq $launchMethod) {
+        throw "Could not find LaunchCalculator method"
+    }
+    
+    Write-Host "Found LaunchCalculator method" -ForegroundColor Green
+    
+    # Invoke the LaunchCalculator method
+    Write-Host "Invoking LaunchCalculator method..." -ForegroundColor Cyan
+    $launchMethod.Invoke($null, $null)
+    
+    Write-Host "Calculator launched. DLL will automatically unload after 10 seconds." -ForegroundColor Green
+    Write-Host "Files created on desktop:" -ForegroundColor Cyan
+    Write-Host "  - $csharpFilePath (C# source code)" -ForegroundColor Cyan
+    Write-Host "  - $tempDllPath (Unencrypted DLL)" -ForegroundColor Cyan
+    Write-Host "  - $encryptedDllPath (Encrypted DLL)" -ForegroundColor Cyan
+} catch {
+    Write-Host "An error occurred: $_" -ForegroundColor Red
+    Write-Host "Stack trace: $($_.Exception.StackTrace)" -ForegroundColor Red
+    
+    # Additional diagnostic info if needed
+    if ($null -ne $results -and $results.Errors.Count -gt 0) {
+        Write-Host "Compilation Errors:" -ForegroundColor Red
+        foreach ($error in $results.Errors) {
+            Write-Host "  $error" -ForegroundColor Red
+        }
     }
 }
-
-# Function to encrypt a byte array
-function Encrypt-Bytes {
-    param (
-        [byte[]]$Data,
-        [byte[]]$Key
-    )
-    
-    # Create AES encryption object
-    $aes = [System.Security.Cryptography.Aes]::Create()
-    $aes.Key = $Key
-    $aes.GenerateIV() # Generate a random IV
-    $iv = $aes.IV
-    
-    # Create memory streams and crypto stream
-    $msEncrypt = New-Object System.IO.MemoryStream
-    $msEncrypt.Write($iv, 0, $iv.Length) # Write IV at the beginning
-    
-    $encryptor = $aes.CreateEncryptor()
-    $csEncrypt = New-Object System.Security.Cryptography.CryptoStream $msEncrypt, $encryptor, "Write"
-    
-    # Write all data to the crypto stream
-    $csEncrypt.Write($Data, 0, $Data.Length)
-    $csEncrypt.FlushFinalBlock()
-    
-    # Get encrypted data and clean up
-    $encrypted = $msEncrypt.ToArray()
-    $csEncrypt.Close()
-    $msEncrypt.Close()
-    $aes.Dispose()
-    
-    return $encrypted
-}
-
-# Function to decrypt a byte array
-function Decrypt-Bytes {
-    param (
-        [byte[]]$EncryptedData,
-        [byte[]]$Key
-    )
-    
-    # Create AES decryption object
-    $aes = [System.Security.Cryptography.Aes]::Create()
-    $aes.Key = $Key
-    
-    # Extract the IV from the beginning of the encrypted data
-    $iv = New-Object byte[] 16 # AES uses 16-byte IVs
-    [Array]::Copy($EncryptedData, 0, $iv, 0, 16)
-    $aes.IV = $iv
-    
-    # Calculate the actual encrypted data (everything after the IV)
-    $encryptedContent = New-Object byte[] ($EncryptedData.Length - 16)
-    [Array]::Copy($EncryptedData, 16, $encryptedContent, 0, $encryptedContent.Length)
-    
-    # Create memory streams and crypto stream for decryption
-    $msDecrypt = New-Object System.IO.MemoryStream $encryptedContent
-    $decryptor = $aes.CreateDecryptor()
-    $csDecrypt = New-Object System.Security.Cryptography.CryptoStream $msDecrypt, $decryptor, "Read"
-    
-    # Read the decrypted data
-    $decrypted = New-Object byte[] $encryptedContent.Length
-    $bytesRead = $csDecrypt.Read($decrypted, 0, $decrypted.Length)
-    
-    # Resize array to actual bytes read
-    $result = New-Object byte[] $bytesRead
-    [Array]::Copy($decrypted, 0, $result, 0, $bytesRead)
-    
-    # Clean up
-    $csDecrypt.Close()
-    $msDecrypt.Close()
-    $aes.Dispose()
-    
-    return $result
-}
-
-Write-Host "Compiling C# code in memory..."
-
-# Add the required .NET assemblies for compilation
-Add-Type -AssemblyName System.CodeDom
-
-# Create an in-memory compiler
-$provider = New-Object Microsoft.CSharp.CSharpCodeProvider
-$params = New-Object System.CodeDom.Compiler.CompilerParameters
-
-# Configure the compiler to generate an in-memory assembly
-$params.GenerateInMemory = $false  # We now want the DLL as a file first
-$params.GenerateExecutable = $false
-$params.TreatWarningsAsErrors = $false
-$params.WarningLevel = 4
-
-# Create a temporary file to hold the assembly
-$tempAssemblyPath = [System.IO.Path]::GetTempFileName() + ".dll"
-$params.OutputAssembly = $tempAssemblyPath
-
-# Reference the necessary assemblies
-$params.ReferencedAssemblies.Add("System.dll") | Out-Null
-$params.ReferencedAssemblies.Add([System.Threading.Thread].Assembly.Location) | Out-Null
-$params.ReferencedAssemblies.Add([System.Diagnostics.Process].Assembly.Location) | Out-Null
-
-# Compile the code
-$results = $provider.CompileAssemblyFromSource($params, $csharpCode)
-
-if ($results.Errors.Count -gt 0) {
-    Write-Host "Compilation errors:" -ForegroundColor Red
-    foreach ($error in $results.Errors) {
-        Write-Host $error.ToString() -ForegroundColor Red
-    }
-    exit
-}
-
-Write-Host "Code compiled successfully to temporary DLL." -ForegroundColor Green
-
-# Read the compiled DLL as bytes
-$dllBytes = [System.IO.File]::ReadAllBytes($tempAssemblyPath)
-
-# Delete the temporary DLL
-[System.IO.File]::Delete($tempAssemblyPath)
-
-# Get encryption key based on hostname
-$encryptionKey = Get-EncryptionKey -Hostname $hostname
-
-# Encrypt the DLL
-Write-Host "Encrypting the DLL with a hostname-based key..."
-$encryptedDllBytes = Encrypt-Bytes -Data $dllBytes -Key $encryptionKey
-
-# Save the encrypted DLL to the desktop
-Write-Host "Writing encrypted DLL to: $encryptedDllPath"
-[System.IO.File]::WriteAllBytes($encryptedDllPath, $encryptedDllBytes)
-
-Write-Host "Encrypted DLL created successfully." -ForegroundColor Green
-Write-Host "Now decrypting and loading the DLL to launch calculator..."
-
-# Decrypt the DLL from the file
-$fileEncryptedBytes = [System.IO.File]::ReadAllBytes($encryptedDllPath)
-$decryptedDllBytes = Decrypt-Bytes -EncryptedData $fileEncryptedBytes -Key $encryptionKey
-
-# Load the decrypted assembly from memory
-$assemblyLoadContext = [System.Reflection.Assembly]::Load($decryptedDllBytes)
-
-# Get the ThundrCalculator type
-$calculatorType = $assemblyLoadContext.GetType("ThundrCalculator")
-
-# Invoke the LaunchCalculator method
-Write-Host "Invoking LaunchCalculator method..."
-$calculatorType.GetMethod("LaunchCalculator").Invoke($null, $null)
-
-Write-Host "Calculator launched. Assembly will automatically unload after 10 seconds."
-Write-Host "The encrypted DLL remains on the desktop at: $encryptedDllPath"
